@@ -16,7 +16,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory; 
+import org.apache.lucene.store.FSDirectory;
 
 public class Main {
     private static String INDEX_DIRECTORY = "index";
@@ -28,7 +28,7 @@ public class Main {
         // To store an index in memory
         // Directory directory = new RAMDirectory();
         // To store an index on disk
-        Directory directory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
+
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
 
         // Index opening mode
@@ -38,22 +38,57 @@ public class Main {
         // does not exist, otherwise it opens it
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
-        IndexWriter iwriter = new IndexWriter(directory, config);
 
+
+        createIndex(config);
         // Create a new document
-        Document doc = new Document();
-        doc.add(new TextField("super_name", "Spider-MAN1", Field.Store.YES));
-        doc.add(new TextField("name", "Peter ParkER1", Field.Store.YES));
-        doc.add(new TextField("category", "superheRO0", Field.Store.YES));
-
         // Save the document to the index
-        iwriter.addDocument(doc);
+
 
         // Commit changes and close everything
-        iwriter.close();
-        directory.close();
 
     }
+
+    public static void createIndex(IndexWriterConfig config) throws IOException {
+        // logic for importing
+        Directory directory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
+
+        IndexWriter iwriter = new IndexWriter(directory, config);
+
+
+        // loop to go through and sort documents
+        while () {
+
+            // define title, Author, and text
+            String id = new String();
+            String title = new String();
+            String author = new String();
+            String text = new String();
+            // just ignore the bibliography
+
+            // read in line
+            // if .I
+                // Document doc = new Document()
+                // doc.add (spiderman example)
+
+            // if t
+                //
+
+            // else if .A do this
+
+            // else if .B read next line
+
+            // else if .W that is text
+
+
+
+            iwriter.addDocument(doc);
+
+        }
+        iwriter.close();
+        directory.close();
+    }
+
 
 
 
