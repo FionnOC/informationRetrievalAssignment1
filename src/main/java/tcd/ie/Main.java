@@ -9,9 +9,12 @@ import java.nio.file.Files;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.Scanner;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
@@ -26,10 +29,27 @@ import javax.print.Doc;
 public class Main {
     private static String INDEX_DIRECTORY = "index";
     private static String CRAN_ALL_1400 = "corpus/cran.all.1400";
-
     public static void main(String[] args) throws IOException {
         // Analyzer that is used to process TextField
-        Analyzer analyzer = new StandardAnalyzer();
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Select an analyzer:");
+        System.out.println("1. Standard Analyzer");
+        System.out.println("2. English Analyzer");
+        System.out.print("Enter your choice (1, 2): ");
+//        Analyzer analyzer = new StandardAnalyzer();
+
+        int choice = scanner.nextInt();
+        Analyzer analyzer;
+
+        if (choice == 1) {
+            analyzer = new StandardAnalyzer();
+        }
+        else if (choice == 2) {
+            analyzer = new EnglishAnalyzer();
+        }else {
+            System.out.println("Invalid choice. Using the Standard Analyzer by default.");
+            analyzer = new StandardAnalyzer();
+        }
 
         // To store an index in memory
         // Directory directory = new RAMDirectory();
@@ -44,8 +64,6 @@ public class Main {
         // does not exist, otherwise it opens it
 
         createIndex(config);
-
-        // Commit changes and close everything
 
     }
 
