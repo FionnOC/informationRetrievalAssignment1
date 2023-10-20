@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -51,62 +54,72 @@ public class Main {
         Directory directory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
         IndexWriter iwriter = new IndexWriter(directory, config);
 
-        Files.lines(Paths.get(CRAN_ALL_1400)).forEach(line -> {
-            try {
-                if (line.startsWith(".I")) {
-                    Document doc = new Document();
-                    String id = line.substring(3).trim();
-                    doc.add((new StringField("id", id, Field.Store.YES)));
+        BufferedReader lineReader = new BufferedReader(new FileReader(CRAN_ALL_1400));
+        String line = lineReader.readLine();
+        String status = "";
+        int count = 0;
 
-                    // as long as the next line is not .I
+        // Files.lines(Paths.get(CRAN_ALL_1400)).forEach(line -> {
+        while ((line) != null) {
+            Document doc = new Document();
+            String id;
+            StringBuilder title = new StringBuilder();
+            StringBuilder author = new StringBuilder();
+            StringBuilder textualDoc = new StringBuilder();
+            // If new document starting
+            if (line.startsWith(".I")) {
+                // add the id to the doc
+                id = line.substring(3).trim();
+                doc.add((new StringField("id", id, Field.Store.YES)));
+                // ok check next line and see if it is .T for title
+                line = lineReader.readLine();
+                status = ".I";
+            }
+            while (line != null && !(line.startsWith(".I"))) {
 
+                if (line.startsWith((".T"))) {
+                    status = ".T";
+                    line = lineReader.readLine();
+                    title.append(line);
+                } else if (line.startsWith((".A"))) {
+                    status = ".A";
+                    line = lineReader.readLine();
+                    author.append(line);
+                } else if (line.startsWith(".B")) {
+                    status = ".B";
+                    line = lineReader.readLine();
+                } else if (line.startsWith(".W")) {
+                    status = ".W";
+                    line = lineReader.readLine();
+                    textualDoc.append(line);
+                } else {
+                    switch (status) {
+                        case ".T":
+                            title.append(line);
+//                            System.out.println(title);
+                            break;
+                        case ".W":
+                            // fix the spacing
+                            textualDoc.append(line);
+                            break;
+                    }
                 }
-
+                line = lineReader.readLine();
             }
-            catch(IOException e) {
-               e.printStackTrace();
-            }
-        });
+//            System.out.println(count);
+//            System.out.println((author));
 
+            doc.add(new TextField("title", title.toString(), Field.Store.YES));
+            doc.add(new TextField("author", author.toString(), Field.Store.YES));
+            doc.add(new TextField("text", textualDoc.toString(), Field.Store.YES));
 
-
-
-
-        // loop to go through and sort documents
-//        for (int i = 0; i < 5; i++) {
-        while () {
-            System.out.printf("Indexing ...\n");
-
-            // define title, Author, and text
-//            String id = new String();
-//            String title = new String();
-//            String author = new String();
-//            String text = new String();
-//            // just ignore the bibliography
-//
-//            // read in line
-//            // if .I
-//                // Document doc = new Document()
-//                // doc.add (spiderman example)
-//
-//            // if t
-//                //
-//
-//            // else if .A do this
-//
-//            // else if .B read next line
-//
-//            // else if .W that is text
-//
-//
-//            iwriter.addDocument(doc);
+            iwriter.addDocument(doc);
+            count++;
 
         }
         iwriter.close();
         directory.close();
+
     }
-
-
-
 
 }
