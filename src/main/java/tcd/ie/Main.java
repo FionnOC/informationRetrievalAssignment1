@@ -31,6 +31,8 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
@@ -64,6 +66,12 @@ public class Main {
             System.out.println("Invalid choice. Using the Standard Analyzer by default.");
             analyzer = new StandardAnalyzer();
         }
+        System.out.println("Select a similarity metric:");
+        System.out.println("1. Vector Space Model");
+        System.out.println("2. BM25");
+        System.out.print("Enter your choice (1, 2): ");
+
+        choice = scanner.nextInt();
 
         // To store an index in memory
         // Directory directory = new RAMDirectory();
@@ -71,6 +79,16 @@ public class Main {
 
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+
+        if (choice == 1) {
+            config.setSimilarity(new ClassicSimilarity());
+        }
+        else if (choice == 2){
+            config.setSimilarity(new BM25Similarity());
+        } else {
+            System.out.println("Invalid choice. Using VSM by default.");
+            config.setSimilarity(new ClassicSimilarity());
+        }
         // Index opening mode
         // IndexWriterConfig.OpenMode.CREATE = create a new index
         // IndexWriterConfig.OpenMode.APPEND = open an existing index
@@ -114,11 +132,10 @@ public class Main {
                 String id_string = Integer.toString(queryID);
                 // ok check next line and see if it is .T for title
                 line = lineReader.readLine();
-                status = ".I";
+
             }
             while (line != null && !(line.startsWith(".I"))) {
                 if (line.startsWith(".W")) {
-                    status = ".W";
                     line = lineReader.readLine();
                 }
                 queryTextBuilder.append(" ");
@@ -215,8 +232,6 @@ public class Main {
                 }
                 line = lineReader.readLine();
             }
-//            System.out.println(count);
-//            System.out.println((author));
 
             doc.add(new TextField("title", title.toString(), Field.Store.YES));
             doc.add(new TextField("author", author.toString(), Field.Store.YES));
