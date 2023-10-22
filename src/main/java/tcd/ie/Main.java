@@ -9,6 +9,10 @@ import java.nio.file.Files;
 
 import java.util.Scanner;
 
+import org.apache.lucene.analysis.CharArraySet;
+
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.DirectoryReader;
 
@@ -24,6 +28,7 @@ import java.nio.file.Path;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
@@ -32,12 +37,14 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
-import javax.print.Doc;
+import java.util.Set;
 
+import javax.print.Doc;
 public class Main {
     private static String INDEX_DIRECTORY = "index";
     private static String CRAN_ALL_1400 = "corpus/cran.all.1400";
@@ -48,61 +55,81 @@ public class Main {
     public static void main(String[] args) throws IOException, ParseException{
         // Analyzer that is used to process TextField
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Select an analyzer:");
+
+        // select the choice of analyzer
+        Analyzer analyzer;
+        System.out.println("What analyzer would you like to use:");
         System.out.println("1. Standard Analyzer");
         System.out.println("2. English Analyzer");
-        System.out.print("Enter your choice (1, 2): ");
-        Analyzer analyzer;
+        System.out.println("3. Simple Analyzer" );
+        System.out.println("4. English Analyzer with a custom stop words array" );
 
+        String[] stopWordsArray = {
+                "the",
+                "and",
+                "is",
+                "in",
+                "it",
+                "at",
+                "of",
+                "was",
+                "for",
+                "a",
+                "with",
+                "by",
+                "?"
+        };
+        CharArraySet stopWordsSet = new CharArraySet(Set.of(stopWordsArray), false);
+
+
+        System.out.print("Enter your choice (1, 2, 3, or 4): ");
         int choice = scanner.nextInt();
 //        Analyzer analyzer = new StandardAnalyzer();
-//
-        if (choice == 1) {
-            analyzer = new StandardAnalyzer();
-        }
-        else if (choice == 2) {
-            analyzer = new EnglishAnalyzer();
-        }else {
-            System.out.println("Invalid choice. Using the Standard Analyzer by default.");
-            analyzer = new StandardAnalyzer();
-        }
+
+        analyzer = switch (choice) {
+            case 1 -> new StandardAnalyzer();
+            case 2 -> new EnglishAnalyzer();
+            case 3 -> new SimpleAnalyzer();
+            case 4 -> new EnglishAnalyzer(stopWordsSet);
+            default -> {
+                System.out.println("Invalid choice. Using the Standard Analyzer by default.");
+                yield new StandardAnalyzer();
+            }
+        };
+
         System.out.println("Select a similarity metric:");
         System.out.println("1. Vector Space Model");
         System.out.println("2. BM25");
-        System.out.print("Enter your choice (1, 2): ");
+        System.out.println("3. Boolean Similarity");
+        System.out.print("Enter your choice (1, 2, or 3): ");
 
         choice = scanner.nextInt();
-
-        // To store an index in memory
-        // Directory directory = new RAMDirectory();
-        // To store an index on disk
 
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
-        if (choice == 1) {
-            config.setSimilarity(new ClassicSimilarity());
+        switch (choice) {
+            case 1:
+                config.setSimilarity(new ClassicSimilarity());
+                break;
+            case 2:
+                config.setSimilarity(new BM25Similarity());
+                break;
+            case 3:
+                config.setSimilarity(new BooleanSimilarity());
+                break;
+            default:
+                System.out.println("Invalid choice. Using VSM by default.");
+                config.setSimilarity(new ClassicSimilarity());
+                break;
         }
-        else if (choice == 2){
-            config.setSimilarity(new BM25Similarity());
-        } else {
-            System.out.println("Invalid choice. Using VSM by default.");
-            config.setSimilarity(new ClassicSimilarity());
-        }
-        // Index opening mode
-        // IndexWriterConfig.OpenMode.CREATE = create a new index
-        // IndexWriterConfig.OpenMode.APPEND = open an existing index
-        // IndexWriterConfig.OpenMode.CREATE_OR_APPEND = create an index if it
-        // does not exist, otherwise it opens it
 
         createIndex(config);
-        queryIndex(analyzer);
-
-//        scanner.close();
-
+        queryIndex(analyzer, config);
+        scanner.close();
     }
 
-    public static void queryIndex(Analyzer analyzer) throws IOException, ParseException {
+    public static void queryIndex(Analyzer analyzer, IndexWriterConfig config) throws IOException, ParseException {
         // Open the folder that contains our search index
         Directory directory = FSDirectory.open(Paths.get(INDEX_DIRECTORY));
         BufferedReader lineReader = new BufferedReader(new FileReader(CRAN_QUERY));
@@ -110,17 +137,19 @@ public class Main {
         // create objects to read and search across the index
         DirectoryReader ireader = DirectoryReader.open(directory);
         IndexSearcher isearcher = new IndexSearcher(ireader);
+        isearcher.setSimilarity(config.getSimilarity());
 
+        // set up file writer to write results to
         FileWriter fileWriter = new FileWriter("results/query_results.txt");
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 
+        // initialise the individual queries
         StringBuilder queryResultBuilder = new StringBuilder();
 
+        // read line
         String line = lineReader.readLine();
 
         int queryID = 0;
-        String status = "";
-
         // go through until end of file
         while (line != null) {
             // new query
@@ -129,15 +158,14 @@ public class Main {
             if (line.startsWith(".I")) {
                 // add the id to the doc
                 queryID++;
-                String id_string = Integer.toString(queryID);
                 // ok check next line and see if it is .T for title
                 line = lineReader.readLine();
-
             }
             while (line != null && !(line.startsWith(".I"))) {
                 if (line.startsWith(".W")) {
                     line = lineReader.readLine();
                 }
+                // map improves with " "
                 queryTextBuilder.append(" ");
                 queryTextBuilder.append(line);
                 line = lineReader.readLine();
@@ -157,7 +185,7 @@ public class Main {
                 // Get set of results
                 ScoreDoc[] hits = isearcher.search(query, MAX_RESULTS).scoreDocs;
 
-                // need to save the results to a file
+                // need to save the results to a file so need to initialise before appending
                 queryResultBuilder.setLength(0);
 
                 for (int i = 0; i < hits.length; i++) {
@@ -166,11 +194,9 @@ public class Main {
 
                     String resultLine = queryID + " Q0 " + doc.get("id") + " " + (i + 1) + " " + hits[i].score + " STANDARD\n";
                     queryResultBuilder.append(resultLine);
-
                 }
 
                 bufferedWriter.write(queryResultBuilder.toString());
-
             }
 
         }
@@ -187,8 +213,7 @@ public class Main {
         String status = "";
         int count = 0;
 
-        // Files.lines(Paths.get(CRAN_ALL_1400)).forEach(line -> {
-        while ((line) != null) {
+        while (line != null) {
             Document doc = new Document();
             String id;
             StringBuilder title = new StringBuilder();
