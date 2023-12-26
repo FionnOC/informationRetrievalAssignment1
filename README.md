@@ -14,7 +14,7 @@ software
   - Look for usage: in README for installation – very straightforward – make
   - Inside trec_eval-9.0.7 enter “make”
   - Then test the installation using “make quicktest”
-  - 
+  
 The search engine is then tested using 225 queries, with different scoring approaches.
 
 To run the code, use the following command
