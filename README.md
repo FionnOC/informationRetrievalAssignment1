@@ -1,0 +1,14 @@
+# Information Retrieval Project 1
+
+The aim of this work is to create a Apache Lucene search engine.
+
+The Cranfield Collection, which is a collection of ~1400 documents, is indexed by the code.
+
+The search engine is then tested using 225 queries, with different scoring approaches.
+
+To run the code, use the following commands
+
+```
+cd project
+sh run_files.sh
+```
