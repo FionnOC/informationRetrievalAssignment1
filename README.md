@@ -6,9 +6,8 @@ The Cranfield Collection, which is a collection of ~1400 documents, is indexed b
 
 The search engine is then tested using 225 queries, with different scoring approaches.
 
-To run the code, use the following commands
+To run the code, use the following command
 
 ```
-cd project
 sh run_files.sh
 ```
